@@ -1,0 +1,716 @@
+---
+swagger: "2.0"
+info:
+  description: "The REST API can be enabled with the `-rest` option. The interface\
+    \ runs on the same port as the JSON-RPC interface, by default port `8332` for\
+    \ **mainnet**, port `18332` for **testnet**, and port `18443` for **regtest**."
+  version: "0.16"
+  title: "Bitcoind"
+  termsOfService: "http://lepetitbloc.net/terms/"
+  contact:
+    email: "johan@lepetitbloc.net"
+  license:
+    name: "MIT"
+    url: "https://opensource.org/licenses/MIT"
+host: "localhost:3000"
+basePath: "/rest"
+tags:
+- name: "transaction"
+  externalDocs:
+    description: "Find out more"
+    url: "https://en.bitcoin.it/wiki/Transaction"
+- name: "memory-pool"
+  description: "Access to the memory pool infos and transactions."
+  externalDocs:
+    description: "Find out more"
+    url: "https://en.bitcoin.it/wiki/Vocabulary#Memory_pool"
+- name: "block"
+  externalDocs:
+    description: "Find out more"
+    url: "https://en.bitcoin.it/wiki/Block"
+schemes:
+- "http"
+paths:
+  /tx/{txHash}:
+    get:
+      tags:
+      - "transaction"
+      summary: "Get transaction by hash."
+      description: "Given a transaction hash: returns a transaction in binary, hex-encoded\
+        \ binary, or JSON formats. For full TX query capability, one must enable the\
+        \ transaction index via txindex=1 command line / configuration option."
+      operationId: "rest_tx"
+      produces:
+      - "application/octet-stream"
+      - "text/plain"
+      - "application/json"
+      parameters:
+      - name: "txHash"
+        in: "path"
+        description: "The transaction hash."
+        required: true
+        type: "string"
+        x-exportParamName: "TxHash"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Transaction"
+        400:
+          description: "Invalid hash"
+        404:
+          description: "Transaction not found"
+  /block/{blockHash}:
+    get:
+      tags:
+      - "block"
+      summary: "Get block by hash."
+      description: "Given a block hash: returns a block, in binary, hex-encoded binary\
+        \ or JSON formats. The HTTP request and response are both handled entirely\
+        \ in-memory, thus making maximum memory usage at least 2.66MB (1 MB max block,\
+        \ plus hex encoding) per request. With the /notxdetails/ option JSON response\
+        \ will only contain the transaction hash instead of the complete transaction\
+        \ details. The option only affects the JSON response."
+      operationId: "rest_block_extended"
+      produces:
+      - "application/octet-stream"
+      - "text/plain"
+      - "application/json"
+      parameters:
+      - name: "blockHash"
+        in: "path"
+        description: "the block hash"
+        required: true
+        type: "string"
+        x-exportParamName: "BlockHash"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Block"
+        400:
+          description: "Invalid hash"
+        404:
+          description: "Block not found"
+  /block/notxdetails/{blockHash}.{format}:
+    get:
+      tags:
+      - "block"
+      summary: "Get block by hash."
+      description: "Given a block hash: returns a block, in binary, hex-encoded binary\
+        \ or JSON formats. The HTTP request and response are both handled entirely\
+        \ in-memory, thus making maximum memory usage at least 2.66MB (1 MB max block,\
+        \ plus hex encoding) per request. With the /notxdetails/ option JSON response\
+        \ will only contain the transaction hash instead of the complete transaction\
+        \ details. The option only affects the JSON response."
+      operationId: "rest_block_notxdetails"
+      produces:
+      - "application/octet-stream"
+      - "text/plain"
+      - "application/json"
+      parameters:
+      - name: "blockHash"
+        in: "path"
+        description: "The block hash"
+        required: true
+        type: "string"
+        x-exportParamName: "BlockHash"
+      - name: "format"
+        in: "path"
+        description: "The expected format"
+        required: true
+        type: "string"
+        default: "json"
+        enum:
+        - "json"
+        - "bin"
+        - "hex"
+        x-exportParamName: "Format"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Block"
+        400:
+          description: "Invalid hash"
+        404:
+          description: "Block not found"
+  /chaininfo.json:
+    get:
+      tags:
+      - "chain"
+      summary: "Returns various state info regarding block chain processing."
+      description: "Returns various state info regarding block chain processing. Only\
+        \ supports JSON as output format."
+      operationId: "rest_chaininfo"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        default:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/ChainInfo"
+  /mempool/info.json:
+    get:
+      tags:
+      - "memory-pool"
+      summary: "Returns various information about the TX mempool."
+      description: "Only supports JSON as output format."
+      operationId: "rest_mempool_info"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        default:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/MemoryPool"
+  /mempool/contents.json:
+    get:
+      tags:
+      - "memory-pool"
+      summary: "Returns transactions in the TX mempool."
+      description: "Only supports JSON as output format."
+      operationId: "rest_mempool_contents"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        default:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/inline_response_default"
+  /headers/{headerCount}/{blockHash}.{format}:
+    get:
+      tags:
+      - "memory-pool"
+      summary: "Returns headers."
+      description: "Only supports BIN and HEX as output format."
+      operationId: "rest_headers"
+      produces:
+      - "application/octet-stream"
+      - "text/plain"
+      parameters:
+      - name: "headerCount"
+        in: "path"
+        description: "The header count"
+        required: true
+        type: "integer"
+        maximum: 1999
+        minimum: 1
+        x-exportParamName: "HeaderCount"
+      - name: "blockHash"
+        in: "path"
+        description: "The block hash"
+        required: true
+        type: "string"
+        x-exportParamName: "BlockHash"
+      - name: "format"
+        in: "path"
+        description: "The expected format"
+        required: true
+        type: "string"
+        default: "hex"
+        enum:
+        - "bin"
+        - "hex"
+        x-exportParamName: "Format"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: "string"
+  /getutxos/checkmempool/{txHash}-{txOutput}.{format}:
+    get:
+      tags:
+      - "memory-pool"
+      summary: "Returns Unspent Transaction (TX) Outputs"
+      description: "Only supports JSON as output format."
+      operationId: "rest_getutxos"
+      produces:
+      - "application/octet-stream"
+      - "text/plain"
+      parameters:
+      - name: "txHash"
+        in: "path"
+        description: "The transaction hash"
+        required: true
+        type: "string"
+        x-exportParamName: "TxHash"
+      - name: "txOutput"
+        in: "path"
+        description: "The transaction output"
+        required: true
+        type: "string"
+        x-exportParamName: "TxOutput"
+      - name: "format"
+        in: "path"
+        description: "The expected format"
+        required: true
+        type: "string"
+        default: "json"
+        enum:
+        - "json"
+        - "bin"
+        - "hex"
+        x-exportParamName: "Format"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/inline_response_200"
+definitions:
+  ChainInfo:
+    type: "object"
+    properties:
+      chain:
+        type: "string"
+        description: "Current network name as defined in BIP70 (main, test, regtest)"
+        enum:
+        - "main"
+        - "test"
+        - "regtest"
+      blocks:
+        type: "integer"
+        format: "int64"
+        description: "The current number of blocks processed in the server"
+      headers:
+        type: "integer"
+        format: "int64"
+        description: "The current number of headers we have validated"
+      bestblockhash:
+        type: "string"
+        description: "The hash of the currently best block"
+      difficulty:
+        type: "integer"
+        format: "int64"
+        description: "The current difficulty"
+      mediantime:
+        type: "integer"
+        format: "int32"
+        description: "The median time of the 11 blocks before the most recent block\
+          \ on the blockchain"
+      verificationprogress:
+        type: "integer"
+        format: "int32"
+        description: "Estimate of verification progress [0..1]"
+      initialblockdownload:
+        type: "boolean"
+      chainwork:
+        type: "string"
+        description: "Total amount of work in active chain, in hexadecimal"
+      size_on_disk:
+        type: "integer"
+        format: "int64"
+      pruned:
+        type: "boolean"
+        description: "If the blocks are subject to pruning"
+      softforks:
+        type: "array"
+        description: "status of softforks in progress"
+        items:
+          $ref: "#/definitions/BIP"
+      bip9_softforks:
+        $ref: "#/definitions/ChainInfo_bip9_softforks"
+      warnings:
+        type: "string"
+        description: "An eventual warning on the current build status."
+    example:
+      headers: 6
+      chain: "main"
+      size_on_disk: 2
+      mediantime: 5
+      blocks: 0
+      pruned: true
+      warnings: "warnings"
+      difficulty: 1
+      bip9_softforks:
+        name:
+          startTime: 9
+          timeout: 3
+          status: "defined"
+          since: 2
+      chainwork: "chainwork"
+      verificationprogress: 5
+      softforks:
+      - reject:
+          status: true
+        id: "id"
+        version: 7
+      - reject:
+          status: true
+        id: "id"
+        version: 7
+      bestblockhash: "bestblockhash"
+      initialblockdownload: true
+    xml:
+      name: "chaininfo"
+  MemoryPool:
+    type: "object"
+    properties:
+      size:
+        type: "integer"
+        format: "int64"
+        description: "the number of transactions in the TX mempool"
+      bytes:
+        type: "integer"
+        format: "int64"
+        description: "size of the TX mempool in bytes"
+      usage:
+        type: "integer"
+        format: "int64"
+        description: "total TX mempool memory usage"
+      maxmempool:
+        type: "integer"
+        format: "int64"
+        description: "maximum memory usage for the mempool in bytes"
+      mempoolminfee:
+        type: "number"
+        format: "float"
+        description: "minimum feerate (BTC per KB) for tx to be accepted"
+      minrelaytxfee:
+        type: "number"
+        format: "float"
+    example:
+      minrelaytxfee: 2.302136
+      size: 0
+      bytes: 6
+      usage: 1
+      maxmempool: 5
+      mempoolminfee: 5.637377
+    xml:
+      name: "memorypoolinfo"
+  Transaction:
+    type: "object"
+    properties:
+      amount:
+        type: "number"
+        format: "float"
+        description: "The transaction amount in BTC"
+      fee:
+        type: "number"
+        format: "float"
+        description: "The amount of the fee in BTC. This is negative and only available\
+          \ for the send category of transactions."
+      confirmations:
+        type: "integer"
+        format: "int64"
+        description: "The number of confirmations"
+      blockhash:
+        type: "string"
+        description: "The block hash"
+      blockindex:
+        type: "integer"
+        format: "int64"
+        description: "The index of the transaction in the block that includes it"
+      blocktime:
+        type: "integer"
+        format: "int32"
+        description: "The time in seconds since epoch (1 Jan 1970 GMT)"
+      txid:
+        type: "string"
+        description: "The transaction id"
+      txhash:
+        type: "string"
+        description: "The transaction hash"
+      version:
+        type: "integer"
+      size:
+        type: "integer"
+      vsize:
+        type: "integer"
+      locktime:
+        type: "integer"
+      time:
+        type: "integer"
+        format: "int32"
+        description: "The transaction time in seconds since epoch (1 Jan 1970 GMT)"
+      timereceived:
+        type: "integer"
+        format: "int32"
+        description: "The time received in seconds since epoch (1 Jan 1970 GMT)"
+      bip125-replaceable:
+        type: "string"
+        description: "Whether this transaction could be replaced due to BIP125 (replace-by-fee);\
+          \ may be unknown for unconfirmed transactions not in the mempool"
+        enum:
+        - "yes"
+        - "no"
+        - "unknown"
+    example:
+      amount: 0.8008282
+      vsize: 9
+      locktime: 3
+      bip125-replaceable: "yes"
+      fee: 6.0274563
+      txid: "txid"
+      confirmations: 1
+      version: 2
+      txhash: "txhash"
+      blockhash: "blockhash"
+      timereceived: 4
+      size: 7
+      blocktime: 5
+      time: 2
+      blockindex: 5
+    xml:
+      name: "transaction"
+  Block:
+    type: "object"
+    properties:
+      hash:
+        type: "string"
+        description: "The block hash"
+      confirmations:
+        type: "integer"
+        format: "int64"
+        description: "The number of confirmations"
+      strippedsize:
+        type: "integer"
+        format: "int64"
+        description: "The block stripped size"
+      size:
+        type: "integer"
+        format: "int64"
+        description: "The block size"
+      weight:
+        type: "integer"
+        format: "int64"
+        description: "The block weight"
+      height:
+        type: "integer"
+        format: "int64"
+        description: "The block height (or index)"
+      version:
+        type: "integer"
+        format: "int64"
+        description: "The block version"
+      versionHex:
+        type: "string"
+        description: "The block version (in hex)"
+      merkleroot:
+        type: "string"
+        description: "The block merkle root"
+      tx:
+        type: "array"
+        description: "The list of transactions in the block"
+        items:
+          $ref: "#/definitions/Transaction"
+      time:
+        type: "integer"
+        format: "int32"
+        description: "The block time"
+      mediantime:
+        type: "integer"
+        format: "int32"
+        description: "The block median time"
+      nonce:
+        type: "integer"
+        format: "int32"
+        description: "The block nonce"
+      bits:
+        type: "string"
+      difficulty:
+        type: "number"
+        format: "float"
+      chainwork:
+        type: "string"
+    example:
+      tx:
+      - amount: 0.8008282
+        vsize: 9
+        locktime: 3
+        bip125-replaceable: "yes"
+        fee: 6.0274563
+        txid: "txid"
+        confirmations: 1
+        version: 2
+        txhash: "txhash"
+        blockhash: "blockhash"
+        timereceived: 4
+        size: 7
+        blocktime: 5
+        time: 2
+        blockindex: 5
+      - amount: 0.8008282
+        vsize: 9
+        locktime: 3
+        bip125-replaceable: "yes"
+        fee: 6.0274563
+        txid: "txid"
+        confirmations: 1
+        version: 2
+        txhash: "txhash"
+        blockhash: "blockhash"
+        timereceived: 4
+        size: 7
+        blocktime: 5
+        time: 2
+        blockindex: 5
+      mediantime: 9
+      bits: "bits"
+      weight: 5
+      versionHex: "versionHex"
+      confirmations: 0
+      version: 2
+      nonce: 3
+      difficulty: 2.027123
+      chainwork: "chainwork"
+      size: 1
+      merkleroot: "merkleroot"
+      strippedsize: 6
+      time: 7
+      hash: "hash"
+      height: 5
+    xml:
+      name: "block"
+  BIP:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        description: "The BIP number, or ? before being assigned"
+      version:
+        type: "integer"
+        format: "int32"
+        description: "The BIP version number"
+      reject:
+        $ref: "#/definitions/BIP_reject"
+    example:
+      reject:
+        status: true
+      id: "id"
+      version: 7
+    xml:
+      name: "bip"
+  BIP9:
+    type: "object"
+    properties:
+      status:
+        type: "string"
+        enum:
+        - "defined"
+        - "started"
+        - "locked_in"
+        - "active"
+        - "failed"
+      startTime:
+        type: "integer"
+        format: "int64"
+        description: "The starttime specifies a minimum median time past of a block\
+          \ at which the bit gains its meaning."
+      timeout:
+        type: "integer"
+        format: "int64"
+        description: "The timeout specifies a time at which the deployment is considered\
+          \ failed. If the median time past of a block >= timeout and the soft fork\
+          \ has not yet locked in (including this block's bit state), the deployment\
+          \ is considered failed on all descendants of the block."
+      since:
+        type: "integer"
+        format: "int64"
+    example:
+      startTime: 9
+      timeout: 3
+      status: "defined"
+      since: 2
+    xml:
+      name: "bip9"
+  UTxO:
+    type: "object"
+    properties:
+      txvers:
+        type: "integer"
+      height:
+        type: "integer"
+      value:
+        type: "number"
+        format: "float"
+      scriptPubKey:
+        $ref: "#/definitions/ScriptPubKey"
+    xml:
+      name: "utxo"
+  ScriptPubKey:
+    type: "object"
+    properties:
+      asm:
+        type: "string"
+      hex:
+        type: "string"
+      reqSigs:
+        type: "integer"
+      type:
+        type: "string"
+        enum:
+        - "nonstandard"
+        - "pubkey"
+        - "pubkeyhash"
+        - "scripthash"
+        - "multisig"
+        - "nulldata"
+        - "witness_v0_keyhash"
+        - "witness_v0_scripthash"
+        - "witness_unknown"
+        default: "pubkeyhash"
+      addresses:
+        type: "array"
+        items:
+          type: "string"
+    xml:
+      name: "scriptpubkey"
+  inline_response_default:
+    properties:
+      txid:
+        $ref: "#/definitions/Transaction"
+    example:
+      txid:
+        amount: 0.8008282
+        vsize: 9
+        locktime: 3
+        bip125-replaceable: "yes"
+        fee: 6.0274563
+        txid: "txid"
+        confirmations: 1
+        version: 2
+        txhash: "txhash"
+        blockhash: "blockhash"
+        timereceived: 4
+        size: 7
+        blocktime: 5
+        time: 2
+        blockindex: 5
+  inline_response_200:
+    properties:
+      chainHeight:
+        type: "integer"
+      chaintipHash:
+        type: "string"
+      bitmap:
+        type: "string"
+      utxos:
+        type: "array"
+        items:
+          $ref: "#/definitions/UTxO"
+  ChainInfo_bip9_softforks:
+    properties:
+      name:
+        $ref: "#/definitions/BIP9"
+    description: "status of BIP9 softforks in progress"
+    example:
+      name:
+        startTime: 9
+        timeout: 3
+        status: "defined"
+        since: 2
+  BIP_reject:
+    properties:
+      status:
+        type: "boolean"
+        description: "if the BIP is rejected"
+    description: "the BIP rejection status"
+    example:
+      status: true
+externalDocs:
+  description: "Find out more about the Bitcoin REST API"
+  url: "https://github.com/bitcoin/bitcoin/blob/master/doc/REST-interface.md"
